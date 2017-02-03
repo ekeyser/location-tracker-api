@@ -6,16 +6,16 @@ var config = common.config();
 var util = require("util");
 AWS.config.loadFromPath(config.aws_config_path);
 var sqs = new AWS.SQS();
-var jsonBlob;
+var oPayload;
 
 var handleMessage = function () {
     "use strict";
 
-    // console.log(util.inspect(jsonBlob, {showHidden: true, depth: null}));
     var params = {
         QueueUrl: config.sqs_url,
-        MessageBody: JSON.stringify(jsonBlob)
+        MessageBody: JSON.stringify(oPayload)
     };
+    console.log(util.inspect(params, {showHidden: true, depth: null}));
 
     sqs.sendMessage(params, function (err, data) {
         if (err) {
@@ -29,7 +29,7 @@ var handleMessage = function () {
 router.post("/", function (req, res, next) {
     "use strict";
 
-    jsonBlob = req.body;
+    oPayload = req.body;
     handleMessage();
 
     res.setHeader("content-type", "application/json");
