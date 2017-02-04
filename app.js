@@ -5,6 +5,7 @@ var logger = require("morgan");
 var cookieParser = require("cookie-parser");
 var bodyParser = require("body-parser");
 
+var util = require("./util");
 var index = require("./routes/index");
 var version = require("./routes/version");
 var sns_location_tracker_queue = require("./routes/sns-location-tracker-queue");
