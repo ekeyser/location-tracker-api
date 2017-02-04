@@ -20,8 +20,6 @@ var handleMessage = function () {
     sqs.sendMessage(params, function (err, data) {
         if (err) {
             console.warn(err, err.stack);
-        } else {
-            console.log(data);
         }
     });
 };
