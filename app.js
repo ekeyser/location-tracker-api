@@ -7,6 +7,7 @@ var bodyParser = require("body-parser");
 
 var index = require("./routes/index");
 var version = require("./routes/version");
+var sns_location_tracker_queue = require("./routes/sns-location-tracker-queue");
 
 var app = express();
 
@@ -24,6 +25,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", index);
 app.use("/version", version);
+app.use("/sns-location-tracker-queue", sns_location_tracker_queue);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
