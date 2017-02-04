@@ -5,12 +5,65 @@ var common = require("../common");
 var config = common.config();
 AWS.config.loadFromPath(config.aws_config_path);
 var sqs = new AWS.SQS();
-var queueurl = config.notify_topic;
+var queueurl = config.url_sqs_locations;
 var util = require("util");
 var arrMessages = [];
-var assocMessages = {};
+var objMessages = {};
 var maxMessagesForRequesting = 10;
 var maxMessagesForProcessing = 100;
+var s3 = new AWS.S3();
+var md5 = require("md5");
+
+var cleanupMessage = function (receipthandle) {
+    "use strict";
+
+    console.warn(receipthandle);
+    sqs.deleteMessage({
+        QueueUrl: queueurl,
+        "ReceiptHandle": receipthandle
+    }, function (err, data) {
+        if (err) {
+            console.warn(err, err.stack);
+        } else {
+            console.log(data);
+        }
+    });
+};
+
+var dumpInLake = function (objMessages) {
+    "use strict";
+
+    // console.warn("mk0");
+    // console.log(util.inspect(objMessages, {showHidden: true, depth: null}));
+    var arrS3Content = [];
+    Object.keys(objMessages).forEach(function (messageId) {
+        // console.warn("mk1");
+        // console.log(objMessages[messageId]);
+        arrS3Content.push(JSON.parse(objMessages[messageId].Body));
+    });
+
+    var hashKey = md5(Date.now());
+    var params = {
+        Bucket: config.s3_datalake_bucket,
+        Key: hashKey,
+        ContentType: "application/json",
+        Body: JSON.stringify(arrS3Content)
+    };
+
+    // console.log(util.inspect(params, {showHidden: true, depth: null}));
+
+    s3.putObject(params, function (err, data) {
+        if (err) {
+            console.warn(err, err.stack);
+        } else {
+            console.log(data);
+            // loop over messages to cleanup
+            Object.keys(objMessages).forEach(function (messageId) {
+                cleanupMessage(objMessages[messageId].ReceiptHandle);
+            });
+        }
+    });
+};
 
 var processMessages = function () {
     "use strict";
@@ -19,23 +72,18 @@ var processMessages = function () {
      a bunch of messages (which may be dupes)
      to a dictionary of single instance messages
      */
-    arrMessages.forEach(function (message) {
+    if (arrMessages.length > 0) {
+        arrMessages.forEach(function (message) {
+            objMessages[message.MessageId] = message;
+        });
+        arrMessages = [];
 
-        // for (var i = 0; i < arrMessages.length; i++) {
-        assocMessages[message.MessageId] = message;
-        // }
-    });
-    arrMessages = [];
-
-    var tools = require("../tools.js");
-    Object.keys(assocMessages).forEach(function (messageId) {
-
-        // for (var messageId in assocMessages) {
-        // console.log(messageId);
-        // console.log(assocMessages[messageId]);
-        tools.newTopic(assocMessages[messageId], AWS);
-        // }
-    });
+        // var tools = require("../tools.js");
+        // Object.keys(objMessages).forEach(function (messageId) {
+        //     tools.newTopic(objMessages[messageId], AWS);
+        // });
+        dumpInLake(objMessages);
+    }
 };
 
 var retrieve = function () {
@@ -49,12 +97,10 @@ var retrieve = function () {
             console.log(err, err.stack);
         }
         else {
-            // console.log(data);
+            // console.log(util.inspect(data, {showHidden: true, depth: null}));
             if (data.Messages !== undefined) {
                 data.Messages.forEach(function (message) {
-                    // for (var z = 0; z < data.Messages.length; z++) {
                     arrMessages.push(message);
-                    // }
                 });
                 /*
                  can we get more?
