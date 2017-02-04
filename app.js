@@ -25,9 +25,15 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+process.env.XRAY_TRACING_DEFAULT_NAME="locationtrackerapi";
+var AWSXRay = require("aws-xray-sdk");
+app.use(AWSXRay.express.openSegment());
+
 app.use("/", index);
 app.use("/version", version);
 app.use("/sns-location-tracker-queue", sns_location_tracker_queue);
+
+app.use(AWSXRay.express.closeSegment());
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
