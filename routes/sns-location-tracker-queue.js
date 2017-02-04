@@ -10,7 +10,7 @@ var util = require("util");
 var arrMessages = [];
 var objMessages = {};
 var maxMessagesForRequesting = 10;
-var maxMessagesForProcessing = 100;
+var maxMessagesForProcessing = 2000;
 var s3 = new AWS.S3();
 var md5 = require("md5");
 
